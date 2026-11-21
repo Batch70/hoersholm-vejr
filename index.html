@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Hørsholm Vejr</title>
+<meta name="theme-color" content="#16281D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hørsholm Vejr">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" href="./icon-180.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-deep:#16281D;
+    --green-mid:#203D2C;
+    --cream:#FFFFFF;
+    --cream-dim:#D9E0D6;
+    --brass:#F0C55E;
+    --rain:#8FC4E8;
+    --warn:#F3A05C;
+    --line:rgba(255,255,255,0.28);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:radial-gradient(circle at 50% -10%, var(--green-mid) 0%, var(--green-deep) 60%, #0E1C13 100%);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    display:flex; justify-content:center;
+    padding:26px 18px 48px;
+  }
+  .wrap{width:100%; max-width:460px;}
+  .eyebrow{font-size:15px; letter-spacing:.1em; text-transform:uppercase; color:var(--brass); font-weight:800; text-align:center;}
+  h1{font-family:'Fraunces',serif; font-weight:700; font-size:30px; text-align:center; margin:4px 0 2px;}
+  .sub{text-align:center; font-size:15px; color:var(--cream-dim); margin-bottom:26px; font-weight:500;}
+
+  .now-card{text-align:center; padding:22px 0 20px; margin-bottom:26px; border-bottom:2px solid var(--line);}
+  .now-temp{font-family:'Fraunces',serif; font-weight:900; font-size:68px; line-height:1;}
+  .now-desc{font-size:19px; color:var(--brass); font-weight:800; margin-top:6px;}
+  .now-meta{font-size:15px; color:var(--cream-dim); margin-top:10px; font-weight:500; line-height:1.5;}
+
+  h2{font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:var(--brass); margin:0 0 14px;}
+  section{margin-bottom:30px;}
+
+  .hblock{padding:12px 0; border-bottom:1px solid var(--line);}
+  .hblock:last-child{border-bottom:none;}
+  .hblock.sep{
+    border-bottom:none; padding:16px 0 4px;
+    font-family:'Fraunces',serif; font-weight:700; font-size:16px; color:var(--brass);
+  }
+  .hblock-top{display:flex; justify-content:space-between; align-items:baseline;}
+  .hblock-time{font-size:16px; font-weight:700; color:var(--cream-dim);}
+  .hblock-temp{font-size:20px; font-weight:800;}
+  .hblock-bottom{display:flex; justify-content:space-between; align-items:baseline; margin-top:3px;}
+  .hblock-wind{font-size:15px; color:var(--cream-dim); font-weight:600;}
+  .hblock-rain{font-size:15px; color:var(--rain); font-weight:700;}
+  .hblock-rain.on{color:var(--warn);}
+
+  .daycard{padding:16px 0; border-bottom:1px solid var(--line);}
+  .daycard:last-child{border-bottom:none;}
+  .daycard.warn{background:rgba(243,160,92,0.08); margin:0 -14px; padding:16px 14px; border-radius:12px; border-bottom:1px solid var(--line);}
+  .daycard-top{display:flex; justify-content:space-between; align-items:baseline;}
+  .daycard-name{font-family:'Fraunces',serif; font-size:19px; font-weight:700;}
+  .daycard-temp{font-size:21px; font-weight:800;}
+  .daycard-mid{display:flex; gap:18px; margin-top:6px; font-size:15px; color:var(--cream-dim); font-weight:600;}
+  .daycard-mid .rainflag{color:var(--warn); font-weight:700;}
+  .daycard-sun{font-size:14px; color:var(--cream-dim); margin-top:8px; font-weight:500; letter-spacing:.01em;}
+
+  .footer{text-align:center; font-size:13px; color:var(--cream-dim); line-height:1.7; opacity:.85;}
+  .refresh-btn{
+    display:block; margin:8px auto 20px;
+    background:rgba(255,255,255,0.08); border:2px solid var(--line); color:var(--cream);
+    font-family:'Inter',sans-serif; font-size:16px; font-weight:700; padding:12px 26px;
+    border-radius:22px; cursor:pointer;
+  }
+  .refresh-btn:active{background:rgba(255,255,255,.16);}
+  .loading{text-align:center; padding:50px 0; color:var(--cream-dim); font-size:16px; font-weight:600;}
+  .error-card{text-align:center;padding:24px 14px;color:var(--cream-dim);line-height:1.6}
+  .error-card strong{display:block;color:var(--brass);font-size:18px;margin-bottom:8px}
+  .error-detail{font-size:13px;overflow-wrap:anywhere;opacity:.85}
+  .cached-note{padding:12px;border:1px solid var(--warn);color:var(--warn);border-radius:10px;text-align:center;font-size:13px;margin-bottom:16px}
+  .refresh-btn:disabled{opacity:.5;cursor:wait;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Hørsholm</div>
+  <h1>Vejret lige nu</h1>
+  <div class="sub">Altid aktuel – ingen download nødvendig</div>
+  <div id="content" class="loading">Henter vejrdata …</div>
+</div>
+
+<script>
+const LAT = 55.8815, LON = 12.4894;
+
+// ---------- Sun/twilight calc (astronomical, no external source) ----------
+const rad = Math.PI/180, dayMs = 864e5, J1970 = 2440588, J2000 = 2451545, J0 = 0.0009;
+const e = rad*23.4397;
+const toJulian = d => d.valueOf()/dayMs - 0.5 + J1970;
+const fromJulian = j => new Date((j+0.5-J1970)*dayMs);
+const toDays = d => toJulian(d) - J2000;
+const rightAscension = (l,b) => Math.atan2(Math.sin(l)*Math.cos(e)-Math.tan(b)*Math.sin(e), Math.cos(l));
+const declination = (l,b) => Math.asin(Math.sin(b)*Math.cos(e)+Math.cos(b)*Math.sin(e)*Math.sin(l));
+const solarMeanAnomaly = d => rad*(357.5291+0.98560028*d);
+const eclipticLongitude = M => {
+  const C = rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M));
+  return M + C + rad*102.9372 + Math.PI;
+};
+const julianCycle = (d,lw) => Math.round(d - J0 - lw/(2*Math.PI));
+const approxTransit = (Ht,lw,n) => J0 + (Ht+lw)/(2*Math.PI) + n;
+const solarTransitJ = (ds,M,L) => J2000 + ds + 0.0053*Math.sin(M) - 0.0069*Math.sin(2*L);
+const hourAngle = (h,phi,d) => Math.acos((Math.sin(h)-Math.sin(phi)*Math.sin(d))/(Math.cos(phi)*Math.cos(d)));
+
+function getSunTimes(date, lat, lng){
+  const lw = rad*-lng, phi = rad*lat, d = toDays(date), n = julianCycle(d,lw),
+    ds = approxTransit(0,lw,n), M = solarMeanAnomaly(ds), L = eclipticLongitude(M),
+    dec = declination(L,0), Jnoon = solarTransitJ(ds,M,L);
+  function pair(h){
+    const w = hourAngle(h*rad, phi, dec);
+    const a = approxTransit(w, lw, n);
+    const Jset = solarTransitJ(a, M, L);
+    const Jrise = Jnoon - (Jset - Jnoon);
+    return [fromJulian(Jrise), fromJulian(Jset)];
+  }
+  const [sunrise, sunset] = pair(-0.833);
+  const [dawn, dusk] = pair(-6);
+  return {dawn, sunrise, sunset, dusk};
+}
+const fmtT = d => d.toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'});
+
+const dirs16 = ['N','NNØ','NØ','ØNØ','Ø','ØSØ','SØ','SSØ','S','SSV','SV','VSV','V','VNV','NV','NNV'];
+const toCompass = deg => dirs16[Math.round(deg/22.5)%16];
+function wCodeDesc(code){
+  if(code===0) return 'Klart';
+  if([1,2].includes(code)) return 'Delvist skyet';
+  if(code===3) return 'Overskyet';
+  if([45,48].includes(code)) return 'Tåge';
+  if([51,53,55,56,57].includes(code)) return 'Støvregn';
+  if([61,63,65,66,67].includes(code)) return 'Regn';
+  if([80,81,82].includes(code)) return 'Regnbyger';
+  if([71,73,75,77,85,86].includes(code)) return 'Sne';
+  if([95,96,99].includes(code)) return 'Torden';
+  return 'Skyet';
+}
+const dayNames = ['Søn','Man','Tirs','Ons','Tors','Fre','Lør'];
+
+const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
+const CACHE_KEY = 'hoersholm-vejr-last-success-v2';
+let loading = false;
+let lastSuccessAt = null;
+
+function getCachedWeather(){
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    return cached && cached.data && cached.savedAt ? cached : null;
+  } catch (_) { return null; }
+}
+function setCachedWeather(data){
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({data, savedAt: Date.now()})); }
+  catch (_) { /* Private browsing or file preview might block storage. */ }
+}
+function checkData(data){
+  if (!data || data.error || !data.current || !data.hourly || !data.daily ||
+      !Array.isArray(data.hourly.time) || !Array.isArray(data.daily.time) ||
+      typeof data.current.temperature_2m !== 'number') {
+    throw new Error(data && data.reason ? data.reason : 'Vejrtjenesten returnerede ufuldstændige data');
+  }
+}
+function showError(err){
+  const el = document.getElementById('content');
+  const cached = getCachedWeather();
+  if (cached) {
+    try {
+      checkData(cached.data);
+      render(cached.data, cached.savedAt, true);
+      return;
+    } catch (_) { /* Ignore unusable cache. */ }
+  }
+  const msg = err && err.message ? err.message : 'Ukendt forbindelsesfejl';
+  const previewTip = location.protocol === 'file:'
+    ? 'Du åbner en lokal HTML-fil. Hvis den vises i en filfremviser på iPhone, kan JavaScript eller internetadgang være begrænset. Prøv at åbne appen som en rigtig webside i Safari.'
+    : 'Kontrollér internetforbindelsen og prøv igen.';
+  el.innerHTML = `<div class="error-card"><strong>Kunne ikke hente vejrdata</strong>
+    <div>${previewTip}</div>
+    <button type="button" class="refresh-btn" onclick="load()">Prøv igen</button>
+    <div class="error-detail" id="error-detail"></div></div>`;
+  document.getElementById('error-detail').textContent = 'Teknisk fejl: ' + msg;
+}
+async function load(){
+  if (loading) return;
+  loading = true;
+  const el = document.getElementById('content');
+  if (!el.querySelector('.now-card')) el.innerHTML = '<div class="loading">Henter vejrdata …</div>';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const params = new URLSearchParams({
+      latitude: LAT, longitude: LON,
+      current: 'temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code',
+      hourly: 'temperature_2m,wind_speed_10m,wind_direction_10m,precipitation',
+      daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code',
+      timezone: 'Europe/Copenhagen', forecast_days: '10', wind_speed_unit: 'ms'
+    });
+    const res = await fetch(WEATHER_URL + '?' + params.toString(), {signal:controller.signal, cache:'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' fra Open-Meteo');
+    const data = await res.json();
+    checkData(data);
+    lastSuccessAt = Date.now();
+    setCachedWeather(data);
+    render(data, lastSuccessAt, false);
+  } catch (err) {
+    console.error('Hørsholm Vejr:', err);
+    showError(err.name === 'AbortError' ? new Error('Forbindelsen tog mere end 12 sekunder') : err);
+  } finally {
+    clearTimeout(timer);
+    loading = false;
+  }
+}
+
+function render(data, updatedAt = Date.now(), fromCache = false){
+  const now = new Date();
+  const c = data.current;
+
+  const hTimes = data.hourly.time.map(t=>new Date(t));
+  let startIdx = hTimes.findIndex(t=>t>=now);
+  if(startIdx<0) startIdx=0;
+  const hours = [];
+  for(let i=startIdx;i<startIdx+48 && i<hTimes.length;i++){
+    hours.push({
+      t: hTimes[i],
+      temp: data.hourly.temperature_2m[i],
+      wind: data.hourly.wind_speed_10m[i],
+      windDir: data.hourly.wind_direction_10m[i],
+      rain: data.hourly.precipitation[i]
+    });
+  }
+  let blocksHtml = '';
+  let lastDay = null;
+  for(let i=0;i<hours.length;i+=3){
+    const chunk = hours.slice(i,i+3);
+    if(!chunk.length) continue;
+    const dName = dayNames[chunk[0].t.getDay()] + ' ' + chunk[0].t.getDate()+'/'+(chunk[0].t.getMonth()+1);
+    if(dName!==lastDay){
+      blocksHtml += `<div class="hblock sep">${dName}</div>`;
+      lastDay = dName;
+    }
+    const tMin = Math.round(Math.min(...chunk.map(h=>h.temp)));
+    const tMax = Math.round(Math.max(...chunk.map(h=>h.temp)));
+    const wMin = Math.min(...chunk.map(h=>h.wind ?? 0)).toFixed(1);
+    const wMax = Math.max(...chunk.map(h=>h.wind ?? 0)).toFixed(1);
+    const rainSum = chunk.reduce((s,h)=>s+(h.rain ?? 0),0);
+    const dirLabel = toCompass(chunk[Math.floor(chunk.length/2)].windDir);
+    const h0 = chunk[0].t.getHours();
+    const hEnd = (chunk[chunk.length-1].t.getHours()+1)%24;
+    const tempStr = tMin===tMax ? `${tMin}°` : `${tMin}-${tMax}°`;
+    const windStr = wMin===wMax ? `${wMin} m/s ${dirLabel}` : `${wMin}-${wMax} m/s ${dirLabel}`;
+    const rainStr = rainSum>0 ? `${rainSum.toFixed(1)}mm` : '0mm';
+    blocksHtml += `<div class="hblock">
+      <div class="hblock-top"><span class="hblock-time">Kl. ${h0}-${hEnd}</span><span class="hblock-temp">${tempStr}</span></div>
+      <div class="hblock-bottom"><span class="hblock-wind">${windStr}</span><span class="hblock-rain ${rainSum>0?'on':''}">${rainStr}</span></div>
+    </div>`;
+  }
+
+  let dailyHtml = '';
+  for(let i=0;i<data.daily.time.length;i++){
+    const d = new Date(data.daily.time[i]+'T12:00:00');
+    const sun = getSunTimes(d, LAT, LON);
+    const tMax = Math.round(data.daily.temperature_2m_max[i]);
+    const tMin = Math.round(data.daily.temperature_2m_min[i]);
+    const wind = (data.daily.wind_speed_10m_max[i] ?? 0).toFixed(0);
+    const rain = data.daily.precipitation_sum[i] ?? 0;
+    const rainFlag = rain>0.5;
+    dailyHtml += `<div class="daycard ${rainFlag?'warn':''}">
+      <div class="daycard-top">
+        <span class="daycard-name">${dayNames[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</span>
+        <span class="daycard-temp">${tMax}°/${tMin}°</span>
+      </div>
+      <div class="daycard-mid">
+        <span>Vind ${wind} m/s</span>
+        <span class="${rainFlag?'rainflag':''}">Regn ${rain>0?rain.toFixed(1)+'mm':'0mm'}</span>
+      </div>
+      <div class="daycard-sun">☀ Daggry ${fmtT(sun.dawn)} · ↑ ${fmtT(sun.sunrise)} · ↓ ${fmtT(sun.sunset)} · ☾ Tusmørke ${fmtT(sun.dusk)}</div>
+    </div>`;
+  }
+
+  const nowSun = getSunTimes(now, LAT, LON);
+
+  document.getElementById('content').innerHTML = `
+    ${fromCache ? `<div class="cached-note">Viser senest gemte vejrudsigt fra ${fmtT(new Date(updatedAt))} · Forbindelsen kunne ikke opdateres</div>` : ''}
+    <div class="now-card">
+      <div class="now-temp">${Math.round(c.temperature_2m)}°</div>
+      <div class="now-desc">${wCodeDesc(c.weather_code)} · ${(c.wind_speed_10m ?? 0).toFixed(1)} m/s ${toCompass(c.wind_direction_10m)}</div>
+      <div class="now-meta">${fromCache ? 'Sidst hentet' : 'Opdateret'} kl. ${fmtT(new Date(updatedAt))}<br>Daggry ${fmtT(nowSun.dawn)} · Solnedgang ${fmtT(nowSun.sunset)}</div>
+    </div>
+
+    <section>
+      <h2>Næste 48 timer</h2>
+      ${blocksHtml}
+    </section>
+
+    <section>
+      <h2>10 dage frem</h2>
+      ${dailyHtml}
+    </section>
+
+    <button type="button" class="refresh-btn" onclick="load()">Opdatér nu</button>
+    <div class="footer">Vejrdata: Open-Meteo · Sol/tusmørke: beregnet astronomisk for Hørsholm<br>Auto-opdaterer hvert 15. minut</div>
+  `;
+}
+
+load();
+setInterval(load, 15*60*1000);
+</script>
+</body>
+</html>
